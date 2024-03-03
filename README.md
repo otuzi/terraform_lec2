@@ -33,6 +33,32 @@
 2. Объявите нужные переменные в файле variables.tf, обязательно указывайте тип переменной. Заполните их **default** прежними значениями из main.tf. 
 3. Проверьте terraform plan. Изменений быть не должно. 
 
+**Ответ**
+
+В файле variables.tf, необходимо внести следующие строки: 
+
+```
+variable "vm_web_image" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "my image"
+}
+
+variable "vm_web_instance" {
+  type        = string
+  default     = "netology-develop-platform-web"
+  description = "my instance"
+}
+```
+В файл main.tf, необходимо скорректировать строки: 
+
+```
+data "yandex_compute_image" "ubuntu" {
+  family = var.vm_web_image
+}
+resource "yandex_compute_instance" "vm-1" {
+  name        = var.vm_web_instance
+```
 
 ### Задание 3
 
@@ -40,6 +66,85 @@
 2. Скопируйте блок ресурса и создайте с его помощью вторую ВМ в файле main.tf: **"netology-develop-platform-db"** ,  ```cores  = 2, memory = 2, core_fraction = 20```. Объявите её переменные с префиксом **vm_db_** в том же файле ('vms_platform.tf').  ВМ должна работать в зоне "ru-central1-b"
 3. Примените изменения.
 
+**Ответ**
+
+Значения хранящиеся в файле `vms_platform.tf`: 
+
+```
+## vars VM compute
+variable "vm_web_image" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "my image"
+}
+
+variable "vm_web_instance" {
+  type        = string
+  default     = "netology-develop-platform-web"
+  description = "my instance"
+}
+
+variable "cloud_id" {
+  type        = string
+  description = "https://cloud.yandex.ru/docs/resource-manager/operations/cloud/get-id"
+}
+
+variable "folder_id" {
+  type        = string
+  description = "https://cloud.yandex.ru/docs/resource-manager/operations/folder/get-id"
+}
+
+variable "default_zone" {
+  type        = string
+  default     = "ru-central1-a"
+  description = "https://cloud.yandex.ru/docs/overview/concepts/geo-scope"
+}
+variable "default_cidr" {
+  type        = list(string)
+  default     = ["10.0.1.0/24"]
+  description = "https://cloud.yandex.ru/docs/vpc/operations/subnet-create"
+}
+
+variable "vpc_name" {
+  type        = string
+  default     = "develop"
+  description = "VPC network & subnet name"
+}
+
+
+###ssh vars
+
+variable "vms_ssh_root_key" {
+  type        = string
+  default     = "<your_ssh_ed25519_key>"
+  description = "ssh-keygen -t ed25519"
+}
+
+## vars db VM
+variable "vm_db_image" {
+  type        = string
+  default     = "ubuntu-2004-lts"
+  description = "my image"
+}
+
+variable "vm_db_instance" {
+  type        = string
+  default     = "netology-develop-platform-db"
+  description = "my instance"
+}
+
+variable "vm_db_zone" {
+  type        = string
+  default     = "ru-central1-a"
+  description = "https://cloud.yandex.ru/docs/overview/concepts/geo-scope"
+}
+
+variable "vms_db_ssh_root_key" {
+  type        = string
+  default     = "<your_ssh_ed25519_key>"
+  description = "ssh-keygen -t ed25519"
+}
+```
 
 ### Задание 4
 
@@ -48,6 +153,21 @@
 
 В качестве решения приложите вывод значений ip-адресов команды ```terraform output```.
 
+**Ответ**
+
+Вывод значений output-s:
+```
+Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+FQDN_VM_DB = "fhmf0k6anqi9j1homi31.auto.internal"
+FQDN_VM_web = "fhmgtcpb2ppucflm5jk4.auto.internal"
+instance_name_VM_DB = "netology-develop-platform-db"
+instance_name_VM_web = "netology-develop-platform-web"
+public_ip_VM_DB = "158.160.59.25"
+public_ip_VM_web = "158.160.49.234"
+```
 
 ### Задание 5
 
@@ -55,6 +175,38 @@
 2. Замените переменные внутри ресурса ВМ на созданные вами local-переменные.
 3. Примените изменения.
 
+**Ответ**
+
+Файл `locals.tf`:
+```
+locals {
+  vm_prefix_db = "netology-develop-platform-db"
+  vm_prefix_web = "netology-develop-platform-web"
+
+  vm_count_db = 1
+  vm_count_web = 2
+
+  vm_names = {
+    db = "${local.vm_prefix_db}-${local.vm_count_db}"
+    web = "${local.vm_prefix_web}-${local.vm_count_web}"
+  }
+}
+```
+
+Так же необходимо скорректировать файл `main.tf`:
+
+Для VM Web:
+```
+resource "yandex_compute_instance" "vm-1" {
+  name = local.vm_names["web"]
+  ...
+```
+Для VM DB:
+```
+resource "yandex_compute_instance" "vm-db" {
+  name = local.vm_names["db"]
+  ...
+```
 
 ### Задание 6
 
@@ -88,4 +240,26 @@
 5. Найдите и закоментируйте все, более не используемые переменные проекта.
 6. Проверьте terraform plan. Изменений быть не должно.
 
+**Ответ**
+
+Содержание файла `terraform.tfvars`:
+```
+vms_resources = {
+  web={
+    cores= 1
+    memory= 1
+    core_fraction= 5
+  },
+  db= {
+    cores= 2
+    memory= 4
+    core_fraction= 20
+  }
+}
+
+metadata = {
+  serial-port-enable = 1
+  ssh-keys           = "ubuntu:ssh-ed25519"
+}
+```
 ------
